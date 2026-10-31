@@ -153,7 +153,6 @@ so keep both scripts in the same folder.
    */15 * * * * python3 $HOME/Projects/JS8-Expect-Scripts/quake2expect.py --grid DN43AP --db $HOME/js8spotter/js8spotter.db >> $HOME/.cache/quake2expect.log 2>&1
    ```
 
-To check the distance and grid math, run `python3 test_quake2expect.py`.
+To check the distance and grid math, run `python3 tests/test_quake2expect.py`.
 To check the WX format, backup cleanup and STALE marking, run
-`python3 test_ambient2expect.py`. Each should
-print `ok`.
+`python3 tests/test_ambient2expect.py`. Each should print `ok`.
