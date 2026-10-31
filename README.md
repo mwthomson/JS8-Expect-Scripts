@@ -96,8 +96,4 @@ Safety:
    keys as user environment variables.
 
 ### Notes
-
-- Not yet confirmed: whether JS8Spotter reads the updated reply while it's
-  running or only after a restart. Test with a live `E? WX` after the first
-  update.
 - Keep the reply short. Every character costs airtime.
