@@ -71,13 +71,13 @@ Safety:
 
    ```bash
    set -a; . ~/.config/ambient.env; set +a
-   python3 ambient2expect.py --dry-run
+   python3 scripts/ambient2expect.py --dry-run
    ```
 
 5. **Update for real:**
 
    ```bash
-   python3 ambient2expect.py --db ~/js8spotter/js8spotter.db --backup
+   python3 scripts/ambient2expect.py --db ~/js8spotter/js8spotter.db --backup
    ```
 
    Options:
@@ -88,7 +88,7 @@ Safety:
 6. **Schedule it every 15 minutes** with `crontab -e`:
 
    ```
-   */15 * * * * set -a; . $HOME/.config/ambient.env; python3 $HOME/Projects/JS8-Expect-Scripts/ambient2expect.py --db $HOME/js8spotter/js8spotter.db --backup >> $HOME/.cache/ambient2expect.log 2>&1
+   */15 * * * * set -a; . $HOME/.config/ambient.env; python3 $HOME/Projects/JS8-Expect-Scripts/scripts/ambient2expect.py --db $HOME/js8spotter/js8spotter.db --backup >> $HOME/.cache/ambient2expect.log 2>&1
    ```
 
    On Windows, use Task Scheduler with the same command, and set the two
@@ -130,7 +130,7 @@ so keep both scripts in the same folder.
 2. **Preview the reply:**
 
    ```bash
-   python3 quake2expect.py --grid DN43AP --dry-run
+   python3 scripts/quake2expect.py --grid DN43AP --dry-run
    ```
 
    Options:
@@ -144,13 +144,13 @@ so keep both scripts in the same folder.
 3. **Update for real:**
 
    ```bash
-   python3 quake2expect.py --grid DN43AP --db ~/js8spotter/js8spotter.db
+   python3 scripts/quake2expect.py --grid DN43AP --db ~/js8spotter/js8spotter.db
    ```
 
 4. **Schedule it every 15 minutes** with `crontab -e`:
 
    ```
-   */15 * * * * python3 $HOME/Projects/JS8-Expect-Scripts/quake2expect.py --grid DN43AP --db $HOME/js8spotter/js8spotter.db >> $HOME/.cache/quake2expect.log 2>&1
+   */15 * * * * python3 $HOME/Projects/JS8-Expect-Scripts/scripts/quake2expect.py --grid DN43AP --db $HOME/js8spotter/js8spotter.db >> $HOME/.cache/quake2expect.log 2>&1
    ```
 
 To check the distance and grid math, run `python3 tests/test_quake2expect.py`.
