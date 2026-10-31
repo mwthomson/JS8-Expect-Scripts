@@ -97,3 +97,60 @@ Safety:
 
 ### Notes
 - Keep the reply short. Every character costs airtime.
+
+## quake2expect.py
+
+Keeps a JS8Spotter Expect reply updated with recent earthquakes near your
+grid square, from the public [USGS earthquake feed](https://earthquake.usgs.gov/fdsnws/event/1/).
+No API key is needed. Callers send `YOURCALL E? QUAKE`.
+
+Example replies:
+
+```
+QUAKE 24H 3 MAX M3.1 28MI NE 0412L
+QUAKE 24H NONE M2.5+ 100MI
+```
+
+| Field | Meaning |
+|-------|---------|
+| `24H` | Time window searched |
+| `3` | Number of quakes in the window at or above the minimum magnitude |
+| `MAX M3.1` | Magnitude of the largest one |
+| `28MI NE` | Its distance and direction from the center of your grid square |
+| `0412L` | Its time, local |
+
+It uses the same database update and daily backup as `ambient2expect.py`,
+so keep both scripts in the same folder.
+
+### Setup
+
+1. **Create the Expect entry in JS8Spotter** with the trigger `QUAKE` and
+   any placeholder reply, as in step 3 for `ambient2expect.py` above.
+
+2. **Preview the reply:**
+
+   ```bash
+   python3 quake2expect.py --grid DN43AP --dry-run
+   ```
+
+   Options:
+   - `--radius 100` sets the search radius in miles.
+   - `--hours 24` sets the time window.
+   - `--min-mag 2.5` sets the smallest magnitude counted.
+   - `--trigger XX` updates a different Expect trigger. The default is `QUAKE`.
+
+3. **Update for real:**
+
+   ```bash
+   python3 quake2expect.py --grid DN43AP --db ~/js8spotter/js8spotter.db \
+       --table expect --key-col expect --resp-col reply
+   ```
+
+4. **Schedule it every 15 minutes** with `crontab -e`:
+
+   ```
+   */15 * * * * python3 $HOME/Projects/JS8-Expect-Scripts/quake2expect.py --grid DN43AP --db $HOME/js8spotter/js8spotter.db --table expect --key-col expect --resp-col reply >> $HOME/.cache/quake2expect.log 2>&1
+   ```
+
+To check the distance and grid math, run `python3 test_quake2expect.py`.
+It should print `ok`.
