@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 """
-quake2expect.py - put recent earthquakes near your grid square into a
-JS8Spotter Expect response, so `YOURCALL E? QUAKE` returns them.
+quake2expect.py - write recent earthquakes near your grid square into a
+JS8Spotter Expect reply, so `YOURCALL E? QUAKE` returns them. Uses the
+public USGS feed; no keys needed.
 
-Stdlib only, no keys needed (USGS feed is public). Usage:
-  Preview:
-    python3 quake2expect.py --grid DN43AP --dry-run
-  Run for real (cron every 15 min):
-    python3 quake2expect.py --grid DN43AP --db /path/js8spotter.db \
-        --table expect --key-col expect --resp-col reply
+  python3 quake2expect.py --grid DN43AP --dry-run
+  python3 quake2expect.py --grid DN43AP --db ~/js8spotter/js8spotter.db
 """
 import argparse
 import json
@@ -69,18 +66,18 @@ def fetch(lat, lon, radius_mi, hours, min_mag):
 
 
 def fmt(quakes, lat, lon, hours, min_mag, radius_mi):
-    """Run time, then largest quake in the window plus a count. JS8-safe.
-    The run time shows callers how old the reply is if the feed goes down.
+    """Update time, count, and largest quake in the window.
     e.g. 'QUAKE 1415L 24H 3 MAX M3.1 28MI NE 0412L'"""
     head = f"QUAKE {datetime.now():%H%M}L {hours}H"
     if not quakes:
         return f"{head} NONE M{min_mag:g}+ {radius_mi}MI"
-    q = quakes[0]  # orderby=magnitude, so largest first
+    q = quakes[0]  # largest first
     qlon, qlat = q["geometry"]["coordinates"][:2]
     mi, brg = dist_bearing(lat, lon, qlat, qlon)
     t = datetime.fromtimestamp(q["properties"]["time"] / 1000, tz=timezone.utc)
+    when = t.astimezone().strftime("%d%H%M" if hours > 24 else "%H%M") + "L"
     return (f"{head} {len(quakes)} MAX M{q['properties']['mag']:.1f} "
-            f"{round(mi)}MI {cardinal(brg)} {t.astimezone():%H%M}L")
+            f"{round(mi)}MI {cardinal(brg)} {when}")
 
 
 def main():
@@ -92,9 +89,9 @@ def main():
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--trigger", default="QUAKE")
     p.add_argument("--db")
-    p.add_argument("--table")
-    p.add_argument("--key-col")
-    p.add_argument("--resp-col")
+    p.add_argument("--table", default="expect")
+    p.add_argument("--key-col", default="expect")
+    p.add_argument("--resp-col", default="reply")
     a = p.parse_args()
 
     lat, lon = grid2latlon(a.grid)
@@ -104,8 +101,8 @@ def main():
     if a.dry_run:
         print(text)
         return
-    if not all([a.db, a.table, a.key_col, a.resp_col]):
-        sys.exit("Need --db --table --key-col --resp-col.")
+    if not a.db:
+        sys.exit("Need --db (or --dry-run).")
     update(a.db, a.table, a.key_col, a.resp_col, a.trigger, text)
     print(f"{a.trigger} -> {text}")
 

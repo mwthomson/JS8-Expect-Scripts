@@ -1,19 +1,12 @@
 #!/usr/bin/env python3
 """
-ambient2expect.py - push current Ambient Weather conditions into a JS8Spotter
-Expect response, so `YOURCALL E? WX` returns live data.
+ambient2expect.py - write current Ambient Weather conditions into a
+JS8Spotter Expect reply, so `YOURCALL E? WX` returns live data.
 
-Stdlib only. Usage:
-  1) Inspect the DB once to find the Expect table/columns:
-       python3 ambient2expect.py --db /path/js8spotter.db --inspect
-  2) Preview the string without touching the DB:
-       python3 ambient2expect.py --dry-run
-  3) Run for real (cron / Task Scheduler every 15 min):
-       python3 ambient2expect.py --db /path/js8spotter.db \
-           --table expect --key-col expect --resp-col reply
+  python3 ambient2expect.py --dry-run
+  python3 ambient2expect.py --db ~/js8spotter/js8spotter.db
 
-Keys come from env: AMBIENT_APP_KEY, AMBIENT_API_KEY (optional AMBIENT_MAC).
-Make keys at ambientweather.net > Account > API Keys.
+Keys from env: AMBIENT_APP_KEY, AMBIENT_API_KEY, optional AMBIENT_MAC.
 """
 import argparse
 import glob
@@ -50,8 +43,7 @@ def cardinal(deg):
 
 
 def fmt(d, grid=""):
-    """Terse, JS8-safe (uppercase, no degree/percent signs).
-    e.g. 'WX 1545L 48F RH62 NW8G15 B30.02 R0.12 R24H0.30'"""
+    """e.g. 'WX 1545L 48F RH62 NW8G15 B30.02 R0.12 R24H0.30'"""
     parts = ["WX"]
     ts = d.get("dateutc")
     stale = False
@@ -110,7 +102,6 @@ def backup_daily(db):
     src.backup(dst)  # safe while JS8Spotter has the DB open
     dst.close()
     src.close()
-    # Keep the newest KEEP_BACKUPS; names sort by date.
     for old in sorted(glob.glob(f"{glob.escape(db)}.bak-[0-9]*"))[:-KEEP_BACKUPS]:
         os.remove(old)
 
@@ -139,9 +130,9 @@ def main():
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--trigger", default="WX")
     p.add_argument("--grid", default="")
-    p.add_argument("--table")
-    p.add_argument("--key-col")
-    p.add_argument("--resp-col")
+    p.add_argument("--table", default="expect")
+    p.add_argument("--key-col", default="expect")
+    p.add_argument("--resp-col", default="reply")
     a = p.parse_args()
 
     if a.inspect:
@@ -159,8 +150,8 @@ def main():
     if a.dry_run:
         print(text)
         return
-    if not all([a.db, a.table, a.key_col, a.resp_col]):
-        sys.exit("Need --db --table --key-col --resp-col (run --inspect first).")
+    if not a.db:
+        sys.exit("Need --db (or --dry-run).")
     update(a.db, a.table, a.key_col, a.resp_col, a.trigger, text)
     print(f"{a.trigger} -> {text}")
 

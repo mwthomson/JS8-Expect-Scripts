@@ -17,4 +17,6 @@ q = {"geometry": {"coordinates": [-111.5, 44.0, 5]},
 out = fmt([q, q], lat, lon, 24, 2.5, 100)
 assert re.fullmatch(r"QUAKE \d{4}L 24H 2 MAX M3\.1 \d+MI NE \d{4}L", out), out
 assert len(out) <= 40, out
+out = fmt([q], lat, lon, 720, 2.5, 100)
+assert re.search(r" NE \d{6}L$", out), out
 print("ok")

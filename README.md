@@ -60,14 +60,15 @@ Safety:
    In JS8Call, turn on Autoreply. Also uncheck "Allow sending standard
    messages without callsign", or `E?` requests won't work.
 
-4. **Check the database layout** (read-only):
+4. **Check the database layout** (read-only, optional):
 
    ```bash
    python3 ambient2expect.py --db ~/js8spotter/js8spotter.db --inspect
    ```
 
-   In current JS8Spotter versions, the table is `expect`, with trigger column
-   `expect` and reply column `reply`.
+   The scripts assume JS8Spotter's current layout: table `expect`, trigger
+   column `expect`, reply column `reply`. If yours differs, pass `--table`,
+   `--key-col` and `--resp-col`.
 
 5. **Preview the reply** without touching the database:
 
@@ -79,8 +80,7 @@ Safety:
 6. **Update for real:**
 
    ```bash
-   python3 ambient2expect.py --db ~/js8spotter/js8spotter.db \
-       --table expect --key-col expect --resp-col reply
+   python3 ambient2expect.py --db ~/js8spotter/js8spotter.db
    ```
 
    Options:
@@ -90,7 +90,7 @@ Safety:
 7. **Schedule it every 15 minutes** with `crontab -e`:
 
    ```
-   */15 * * * * set -a; . $HOME/.config/ambient.env; python3 $HOME/Projects/JS8-Expect-Scripts/ambient2expect.py --db $HOME/js8spotter/js8spotter.db --table expect --key-col expect --resp-col reply >> $HOME/.cache/ambient2expect.log 2>&1
+   */15 * * * * set -a; . $HOME/.config/ambient.env; python3 $HOME/Projects/JS8-Expect-Scripts/ambient2expect.py --db $HOME/js8spotter/js8spotter.db >> $HOME/.cache/ambient2expect.log 2>&1
    ```
 
    On Windows, use Task Scheduler with the same command, and set the two
@@ -119,7 +119,7 @@ QUAKE 1415L 24H NONE M2.5+ 100MI
 | `3` | Number of quakes in the window at or above the minimum magnitude |
 | `MAX M3.1` | Magnitude of the largest one |
 | `28MI NE` | Its distance and direction from the center of your grid square |
-| `0412L` | Its time, local |
+| `0412L` | Its time, local. With `--hours` over 24, the day is added: `140412L` |
 
 It uses the same database update and daily backup as `ambient2expect.py`,
 so keep both scripts in the same folder.
@@ -144,14 +144,13 @@ so keep both scripts in the same folder.
 3. **Update for real:**
 
    ```bash
-   python3 quake2expect.py --grid DN43AP --db ~/js8spotter/js8spotter.db \
-       --table expect --key-col expect --resp-col reply
+   python3 quake2expect.py --grid DN43AP --db ~/js8spotter/js8spotter.db
    ```
 
 4. **Schedule it every 15 minutes** with `crontab -e`:
 
    ```
-   */15 * * * * python3 $HOME/Projects/JS8-Expect-Scripts/quake2expect.py --grid DN43AP --db $HOME/js8spotter/js8spotter.db --table expect --key-col expect --resp-col reply >> $HOME/.cache/quake2expect.log 2>&1
+   */15 * * * * python3 $HOME/Projects/JS8-Expect-Scripts/quake2expect.py --grid DN43AP --db $HOME/js8spotter/js8spotter.db >> $HOME/.cache/quake2expect.log 2>&1
    ```
 
 To check the distance and grid math, run `python3 test_quake2expect.py`.
