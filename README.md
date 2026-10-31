@@ -29,10 +29,13 @@ writes it into the reply of one Expect row in `js8spotter.db`. It uses only
 the Python 3 standard library.
 
 Safety:
-- Once a day, before writing, it backs up the database to
+- With `--backup`, it backs up the database once a day, before writing, to
   `js8spotter.db.bak-YYYYMMDD` next to the original. It keeps the 7 newest
-  backups and deletes older ones.
+  backups and deletes older ones. Both scripts take `--backup`; putting it on
+  one cron line is enough.
 - It changes nothing unless exactly one Expect row matches the trigger.
+- If the station data can't be fetched, it adds `STALE` to the end of the
+  current reply, so an old reading doesn't look current.
 
 ### Setup
 
@@ -60,37 +63,32 @@ Safety:
    In JS8Call, turn on Autoreply. Also uncheck "Allow sending standard
    messages without callsign", or `E?` requests won't work.
 
-4. **Check the database layout** (read-only, optional):
-
-   ```bash
-   python3 ambient2expect.py --db ~/js8spotter/js8spotter.db --inspect
-   ```
-
    The scripts assume JS8Spotter's current layout: table `expect`, trigger
    column `expect`, reply column `reply`. If yours differs, pass `--table`,
    `--key-col` and `--resp-col`.
 
-5. **Preview the reply** without touching the database:
+4. **Preview the reply** without touching the database:
 
    ```bash
    set -a; . ~/.config/ambient.env; set +a
    python3 ambient2expect.py --dry-run
    ```
 
-6. **Update for real:**
+5. **Update for real:**
 
    ```bash
-   python3 ambient2expect.py --db ~/js8spotter/js8spotter.db
+   python3 ambient2expect.py --db ~/js8spotter/js8spotter.db --backup
    ```
 
    Options:
+   - `--backup` makes the daily database backup described above.
    - `--trigger XX` updates a different Expect trigger. The default is `WX`.
    - `--grid DN43` adds your grid square to the reply.
 
-7. **Schedule it every 15 minutes** with `crontab -e`:
+6. **Schedule it every 15 minutes** with `crontab -e`:
 
    ```
-   */15 * * * * set -a; . $HOME/.config/ambient.env; python3 $HOME/Projects/JS8-Expect-Scripts/ambient2expect.py --db $HOME/js8spotter/js8spotter.db >> $HOME/.cache/ambient2expect.log 2>&1
+   */15 * * * * set -a; . $HOME/.config/ambient.env; python3 $HOME/Projects/JS8-Expect-Scripts/ambient2expect.py --db $HOME/js8spotter/js8spotter.db --backup >> $HOME/.cache/ambient2expect.log 2>&1
    ```
 
    On Windows, use Task Scheduler with the same command, and set the two
@@ -140,6 +138,8 @@ so keep both scripts in the same folder.
    - `--hours 24` sets the time window.
    - `--min-mag 2.5` sets the smallest magnitude counted.
    - `--trigger XX` updates a different Expect trigger. The default is `QUAKE`.
+   - `--backup` makes the daily database backup. It isn't needed if the WX
+     cron line already uses it.
 
 3. **Update for real:**
 
@@ -154,5 +154,6 @@ so keep both scripts in the same folder.
    ```
 
 To check the distance and grid math, run `python3 test_quake2expect.py`.
-To check backup cleanup, run `python3 test_ambient2expect.py`. Each should
+To check the WX format, backup cleanup and STALE marking, run
+`python3 test_ambient2expect.py`. Each should
 print `ok`.

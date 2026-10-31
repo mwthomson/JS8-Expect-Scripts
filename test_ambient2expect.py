@@ -3,7 +3,10 @@ import sqlite3
 import tempfile
 from datetime import datetime
 
-from ambient2expect import KEEP_BACKUPS, backup_daily
+from ambient2expect import KEEP_BACKUPS, backup_daily, fmt, mark_stale
+
+assert "CALM" in fmt({"windspeedmph": 0, "windgustmph": 0})
+assert fmt({"windspeedmph": 0, "windgustmph": 15, "winddir": 315}) == "WX NW0G15"
 
 with tempfile.TemporaryDirectory() as d:
     db = os.path.join(d, "js8spotter.db")
@@ -19,4 +22,14 @@ with tempfile.TemporaryDirectory() as d:
     assert left[-1] == f"js8spotter.db.bak-{datetime.now():%Y%m%d}", left
     assert "js8spotter.db.bak-20260101" not in left, left
     assert os.path.exists(f"{db}.blank")
+
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE expect (expect, reply)")
+    con.execute("INSERT INTO expect VALUES ('WX', 'WX 1619L 48F'), ('COND', 'G')")
+    con.commit()
+    mark_stale(db, "expect", "expect", "reply", "WX")
+    mark_stale(db, "expect", "expect", "reply", "WX")  # only once
+    rows = dict(con.execute("SELECT * FROM expect"))
+    assert rows == {"WX": "WX 1619L 48F STALE", "COND": "G"}, rows
+    con.close()
 print("ok")

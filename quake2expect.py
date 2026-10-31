@@ -5,7 +5,7 @@ JS8Spotter Expect reply, so `YOURCALL E? QUAKE` returns them. Uses the
 public USGS feed; no keys needed.
 
   python3 quake2expect.py --grid DN43AP --dry-run
-  python3 quake2expect.py --grid DN43AP --db ~/js8spotter/js8spotter.db
+  python3 quake2expect.py --grid DN43AP --db ~/js8spotter/js8spotter.db [--backup]
 """
 import argparse
 import json
@@ -87,6 +87,7 @@ def main():
     p.add_argument("--hours", type=int, default=24)
     p.add_argument("--min-mag", type=float, default=2.5)
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--backup", action="store_true", help="daily DB backup, keeps 7")
     p.add_argument("--trigger", default="QUAKE")
     p.add_argument("--db")
     p.add_argument("--table", default="expect")
@@ -103,7 +104,7 @@ def main():
         return
     if not a.db:
         sys.exit("Need --db (or --dry-run).")
-    update(a.db, a.table, a.key_col, a.resp_col, a.trigger, text)
+    update(a.db, a.table, a.key_col, a.resp_col, a.trigger, text, a.backup)
     print(f"{a.trigger} -> {text}")
 
 

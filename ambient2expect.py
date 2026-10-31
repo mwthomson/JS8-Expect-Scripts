@@ -4,11 +4,12 @@ ambient2expect.py - write current Ambient Weather conditions into a
 JS8Spotter Expect reply, so `YOURCALL E? WX` returns live data.
 
   python3 ambient2expect.py --dry-run
-  python3 ambient2expect.py --db ~/js8spotter/js8spotter.db
+  python3 ambient2expect.py --db ~/js8spotter/js8spotter.db [--backup]
 
 Keys from env: AMBIENT_APP_KEY, AMBIENT_API_KEY, optional AMBIENT_MAC.
 """
 import argparse
+import contextlib
 import glob
 import json
 import os
@@ -59,11 +60,11 @@ def fmt(d, grid=""):
         parts.append(f"RH{round(d['humidity'])}")
     if "windspeedmph" in d:
         ws = round(d["windspeedmph"])
-        if ws == 0:
+        g = round(d.get("windgustmph", 0))
+        if ws == 0 and g == 0:
             parts.append("CALM")
         else:
             w = (cardinal(d["winddir"]) if "winddir" in d else "") + str(ws)
-            g = round(d.get("windgustmph", 0))
             if g > ws:
                 w += f"G{g}"
             parts.append(w)
@@ -78,21 +79,6 @@ def fmt(d, grid=""):
     return " ".join(parts)
 
 
-def inspect(db):
-    con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
-    cur = con.cursor()
-    tables = [r[0] for r in cur.execute("SELECT name FROM sqlite_master WHERE type='table'")]
-    for t in tables:
-        cols = [c[1] for c in cur.execute(f'PRAGMA table_info("{t}")')]
-        n = cur.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0]
-        flag = "  <-- likely Expect" if "expect" in t.lower() else ""
-        print(f"{t} ({n} rows): {', '.join(cols)}{flag}")
-        if flag:
-            for row in cur.execute(f'SELECT * FROM "{t}" LIMIT 5'):
-                print("    ", row)
-    con.close()
-
-
 def backup_daily(db):
     path = f"{db}.bak-{datetime.now():%Y%m%d}"
     if os.path.exists(path):
@@ -103,11 +89,25 @@ def backup_daily(db):
     dst.close()
     src.close()
     for old in sorted(glob.glob(f"{glob.escape(db)}.bak-[0-9]*"))[:-KEEP_BACKUPS]:
-        os.remove(old)
+        with contextlib.suppress(FileNotFoundError):  # another script got it first
+            os.remove(old)
 
 
-def update(db, table, key_col, resp_col, trigger, text):
-    backup_daily(db)
+def mark_stale(db, table, key_col, resp_col, trigger):
+    """Append STALE to the stored reply once, so an old reading doesn't look current."""
+    con = sqlite3.connect(db, timeout=10)
+    con.execute(
+        f'UPDATE "{table}" SET "{resp_col}"="{resp_col}" || \' STALE\' '
+        f'WHERE "{key_col}"=? AND "{resp_col}" NOT LIKE \'% STALE\'',
+        (trigger,),
+    )
+    con.commit()
+    con.close()
+
+
+def update(db, table, key_col, resp_col, trigger, text, backup=False):
+    if backup:
+        backup_daily(db)
     con = sqlite3.connect(db, timeout=10)
     cur = con.execute(
         f'UPDATE "{table}" SET "{resp_col}"=? WHERE "{key_col}"=?', (text, trigger)
@@ -126,8 +126,8 @@ def update(db, table, key_col, resp_col, trigger, text):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--db")
-    p.add_argument("--inspect", action="store_true")
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--backup", action="store_true", help="daily DB backup, keeps 7")
     p.add_argument("--trigger", default="WX")
     p.add_argument("--grid", default="")
     p.add_argument("--table", default="expect")
@@ -135,24 +135,24 @@ def main():
     p.add_argument("--resp-col", default="reply")
     a = p.parse_args()
 
-    if a.inspect:
-        if not a.db:
-            sys.exit("--inspect needs --db")
-        inspect(a.db)
-        return
-
     app = os.environ.get("AMBIENT_APP_KEY")
     key = os.environ.get("AMBIENT_API_KEY")
     if not (app and key):
         sys.exit("Set AMBIENT_APP_KEY and AMBIENT_API_KEY.")
-    text = fmt(fetch(app, key, os.environ.get("AMBIENT_MAC")), a.grid)
+    if not (a.db or a.dry_run):
+        sys.exit("Need --db (or --dry-run).")
+    try:
+        data = fetch(app, key, os.environ.get("AMBIENT_MAC"))
+    except (OSError, ValueError) as e:  # network down, timeout, bad JSON
+        if not a.dry_run:
+            mark_stale(a.db, a.table, a.key_col, a.resp_col, a.trigger)
+        sys.exit(f"Fetch failed: {e}")
+    text = fmt(data, a.grid)
 
     if a.dry_run:
         print(text)
         return
-    if not a.db:
-        sys.exit("Need --db (or --dry-run).")
-    update(a.db, a.table, a.key_col, a.resp_col, a.trigger, text)
+    update(a.db, a.table, a.key_col, a.resp_col, a.trigger, text, a.backup)
     print(f"{a.trigger} -> {text}")
 
 
