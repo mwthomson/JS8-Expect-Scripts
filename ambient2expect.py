@@ -49,7 +49,7 @@ def cardinal(deg):
 
 def fmt(d, grid=""):
     """Terse, JS8-safe (uppercase, no degree/percent signs).
-    e.g. 'WX 1545L 48F RH62 NW8G15 B30.02 R0.12'"""
+    e.g. 'WX 1545L 48F RH62 NW8G15 B30.02 R0.12 R24H0.30'"""
     parts = ["WX"]
     ts = d.get("dateutc")
     stale = False
@@ -77,6 +77,8 @@ def fmt(d, grid=""):
         parts.append(f"B{d['baromrelin']:.2f}")
     if d.get("dailyrainin", 0) > 0:
         parts.append(f"R{d['dailyrainin']:.2f}")
+    if d.get("24hourrainin", 0) > 0:
+        parts.append(f"R24H{d['24hourrainin']:.2f}")
     if stale:
         parts.append("STALE")
     return " ".join(parts)
