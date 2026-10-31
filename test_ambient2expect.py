@@ -7,6 +7,8 @@ from ambient2expect import KEEP_BACKUPS, backup_daily, fmt, mark_stale
 
 assert "CALM" in fmt({"windspeedmph": 0, "windgustmph": 0})
 assert fmt({"windspeedmph": 0, "windgustmph": 15, "winddir": 315}) == "WX NW0G15"
+assert fmt({"dailyrainin": 0.03, "eventrainin": 0.2}) == "WX R0.03 EVT0.20"
+assert fmt({"eventrainin": 0}) == "WX"
 
 with tempfile.TemporaryDirectory() as d:
     db = os.path.join(d, "js8spotter.db")

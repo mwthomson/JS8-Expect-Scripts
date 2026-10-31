@@ -10,7 +10,7 @@ entry can send `YOURCALL E? WX` over JS8Call and get current weather back.
 Example reply:
 
 ```
-WX 1619L 48F RH62 NW8G15 B30.02 R0.12 R24H0.30
+WX 1619L 48F RH62 NW8G15 B30.02 R0.12 EVT0.20
 ```
 
 | Field | Meaning |
@@ -21,7 +21,7 @@ WX 1619L 48F RH62 NW8G15 B30.02 R0.12 R24H0.30
 | `NW8G15` | Wind direction, speed and gust, mph (`CALM` if 0) |
 | `B30.02` | Relative barometric pressure, inHg |
 | `R0.12` | Rain today, inches (only shown when > 0) |
-| `R24H0.30` | Rain in the last 24 hours, inches (only shown when > 0) |
+| `EVT0.20` | Rain this storm, inches (the station resets it after a dry spell) (only shown when > 0) |
 | `STALE` | Added when the reading is more than 30 minutes old |
 
 The script fetches the latest reading from the Ambient Weather API and
