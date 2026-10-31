@@ -16,6 +16,7 @@ Keys come from env: AMBIENT_APP_KEY, AMBIENT_API_KEY (optional AMBIENT_MAC).
 Make keys at ambientweather.net > Account > API Keys.
 """
 import argparse
+import glob
 import json
 import os
 import sqlite3
@@ -27,6 +28,7 @@ from datetime import datetime, timezone
 API = "https://rt.ambientweather.net/v1/devices"
 DIRS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 STALE_MIN = 30
+KEEP_BACKUPS = 7
 
 
 def fetch(app_key, api_key, mac=None):
@@ -108,6 +110,9 @@ def backup_daily(db):
     src.backup(dst)  # safe while JS8Spotter has the DB open
     dst.close()
     src.close()
+    # Keep the newest KEEP_BACKUPS; names sort by date.
+    for old in sorted(glob.glob(f"{glob.escape(db)}.bak-[0-9]*"))[:-KEEP_BACKUPS]:
+        os.remove(old)
 
 
 def update(db, table, key_col, resp_col, trigger, text):

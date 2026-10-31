@@ -30,7 +30,8 @@ the Python 3 standard library.
 
 Safety:
 - Once a day, before writing, it backs up the database to
-  `js8spotter.db.bak-YYYYMMDD` next to the original.
+  `js8spotter.db.bak-YYYYMMDD` next to the original. It keeps the 7 newest
+  backups and deletes older ones.
 - It changes nothing unless exactly one Expect row matches the trigger.
 
 ### Setup
@@ -107,12 +108,13 @@ No API key is needed. Callers send `YOURCALL E? QUAKE`.
 Example replies:
 
 ```
-QUAKE 24H 3 MAX M3.1 28MI NE 0412L
-QUAKE 24H NONE M2.5+ 100MI
+QUAKE 1415L 24H 3 MAX M3.1 28MI NE 0412L
+QUAKE 1415L 24H NONE M2.5+ 100MI
 ```
 
 | Field | Meaning |
 |-------|---------|
+| `1415L` | When the reply was last updated, local. An old time means the feed or script is down |
 | `24H` | Time window searched |
 | `3` | Number of quakes in the window at or above the minimum magnitude |
 | `MAX M3.1` | Magnitude of the largest one |
@@ -153,4 +155,5 @@ so keep both scripts in the same folder.
    ```
 
 To check the distance and grid math, run `python3 test_quake2expect.py`.
-It should print `ok`.
+To check backup cleanup, run `python3 test_ambient2expect.py`. Each should
+print `ok`.

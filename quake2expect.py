@@ -69,15 +69,17 @@ def fetch(lat, lon, radius_mi, hours, min_mag):
 
 
 def fmt(quakes, lat, lon, hours, min_mag, radius_mi):
-    """Largest quake in the window plus a count. JS8-safe, under 40 chars.
-    e.g. 'QUAKE 24H 3 MAX M3.1 28MI NE 0412L'"""
+    """Run time, then largest quake in the window plus a count. JS8-safe.
+    The run time shows callers how old the reply is if the feed goes down.
+    e.g. 'QUAKE 1415L 24H 3 MAX M3.1 28MI NE 0412L'"""
+    head = f"QUAKE {datetime.now():%H%M}L {hours}H"
     if not quakes:
-        return f"QUAKE {hours}H NONE M{min_mag:g}+ {radius_mi}MI"
+        return f"{head} NONE M{min_mag:g}+ {radius_mi}MI"
     q = quakes[0]  # orderby=magnitude, so largest first
     qlon, qlat = q["geometry"]["coordinates"][:2]
     mi, brg = dist_bearing(lat, lon, qlat, qlon)
     t = datetime.fromtimestamp(q["properties"]["time"] / 1000, tz=timezone.utc)
-    return (f"QUAKE {hours}H {len(quakes)} MAX M{q['properties']['mag']:.1f} "
+    return (f"{head} {len(quakes)} MAX M{q['properties']['mag']:.1f} "
             f"{round(mi)}MI {cardinal(brg)} {t.astimezone():%H%M}L")
 
 
